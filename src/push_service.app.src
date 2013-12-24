@@ -1,0 +1,21 @@
+{application, push_service,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  apns
+                 ]},
+  {mod, { push_service_app, []}},
+  {env, [
+    {apn, [
+      {no_keyfile, true},
+      {cert_dir, "etc/apn"},
+      {timeout, 30000},
+      {feedback_timeout, 1800000},
+      {cert_password, undefined}
+    ]}
+  ]}
+ ]}.

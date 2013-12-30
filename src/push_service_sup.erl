@@ -24,6 +24,6 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-  Pusher = {pusher, {pusher, start_link, []}, permanent, infinity, supervisor, [pusher]},
+  Pusher = {push_service, {push_service, start_link, []}, permanent, infinity, supervisor, [push_service]},
   {ok, { {one_for_one, 5, 10}, [Pusher]} }.
 

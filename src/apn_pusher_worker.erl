@@ -22,13 +22,13 @@ error_fun(X, Y) ->
 feedback_fun({Date, Token}) ->
   erlang:display({Date, Token}).
 
-init([AppId, Debug]) ->
-  Config = application:get_env(pushe_service, apn),
+init({AppId, Debug}) ->
+  Config = application:get_env(push_service, apn, []),
 
   {ErrorFunMod, ErrorFunFun} = proplists:get_value(error_fun, Config, {apn_pusher_worker, error_fun}),
-  ErrorFun = fun ErrorFunMod:ErrorFunMod/2,
+  ErrorFun = fun ErrorFunMod:ErrorFunFun/2,
   {FeedbackFunMod, FeedbackFunFun} = proplists:get_value(feedback_fun, Config, {apn_pusher_worker, feedback_fun}),
-  FeedbackFun = fun FeedbackFunMod:FeedbackFunMod/1,
+  FeedbackFun = fun FeedbackFunMod:FeedbackFunFun/1,
 
   Timeout = proplists:get_value(timeout, Config, 30000),
   FeedbackTimeout = proplists:get_value(feedback_timeout, Config, 30*60*1000),
@@ -54,24 +54,29 @@ init([AppId, Debug]) ->
   end,
 
   Passphrase = proplists:get_value(cert_password, Config),
-
-  Connection = #apns_connection{
-    cert_file = CertFile,
-    key_file = KeyFile,
-    cert_password = Passphrase,
-    apple_host = push_host(Debug),
-    feedback_host = feedback_host(Debug),
-    feedback_fun = FeedbackFun,
-    error_fun = ErrorFun,
-    timeout = Timeout,
-    feedback_timeout = FeedbackTimeout
-  },
-  {ok, Pid} = apns:connect(Connection),
-  {ok, #state{ conn = Pid }}.
+  case file:read_file_info(CertFile)  of
+    {ok, _} ->
+      Connection = #apns_connection{
+        cert_file = CertFile,
+        key_file = KeyFile,
+        cert_password = Passphrase,
+        apple_host = push_host(Debug),
+        feedback_host = feedback_host(Debug),
+        feedback_fun = FeedbackFun,
+        error_fun = ErrorFun,
+        timeout = Timeout,
+        feedback_timeout = FeedbackTimeout
+      },
+      {ok, Pid} = apns:connect(Connection),
+      {ok, #state{ conn = Pid }};
+    {error, Reason} ->
+      {stop, {cert_file, Reason}}
+  end.
 
 handle_call({send, Tokens, Message}, _From, #state{conn = C} = State)
-  when is_record(Message, message) ->
-  [ ok = apns:send_message(C, get_message(Message, Token)) || Token <- Tokens ],
+    when is_record(Message, message) ->
+  [ {ok, _} = apns:send_sync_message(C, get_message(Message, Token))
+    || Token <- Tokens ],
   {reply, ok, State}.
 
 handle_cast(_,State) -> {noreply, State}.
@@ -82,7 +87,9 @@ terminate(_, #state{ conn = C }) -> apns:disconnect(C).
 
 code_change(_,State,_) -> {ok, State}.
 
--spec get_message(pusher:message(), pusher:token()) -> #apns_msg{}.
+-spec get_message(push_service:message(), push_service:token()) -> #apns_msg{}.
+get_message(Message, Token) when is_binary(Token) ->
+  get_message(Message, binary_to_list(Token));
 get_message(
   #message{
     text = Text,
@@ -90,7 +97,7 @@ get_message(
     sound = Sound,
     extra = Extra
   },
-  Token) ->
+  Token) when is_list(Token) ->
   #apns_msg{
     device_token = Token,
     alert = Text,

@@ -16,6 +16,11 @@
       {timeout, 30000},
       {feedback_timeout, 1800000},
       {cert_password, undefined}
+    ]},
+    {gcm, [
+      {api_keys, [
+        {""}
+      ]}
     ]}
   ]}
  ]}.

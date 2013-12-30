@@ -1,6 +1,6 @@
--type token() :: binary().
--type app_id() :: binary().
--type os_name() :: ios | android | 'android-kindle'.
+-type token() :: binary() | string().
+-type app_id() :: binary() | string().
+-type os_name() :: ios | android.
 
 
 -record(device_group, {

@@ -77,7 +77,8 @@ make_pool(PoolName, OsName, AppId, Debug) ->
 
 -spec send(pid(), [token()], message()) -> ok.
 send(Pusher, Tokens, Message) ->
-  gen_server:call(Pusher, {send, Tokens, Message}).
+  FormattedTokens = [ binary:replace(Token, <<" ">>, <<>>) || Token <- Tokens ],
+  gen_server:call(Pusher, {send, FormattedTokens, Message}).
 
 worker_module(ios) -> apn_pusher_worker;
 worker_module(android) -> gcm_pusher_worker;

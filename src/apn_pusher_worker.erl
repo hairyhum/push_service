@@ -100,11 +100,14 @@ get_message(
   Token) when is_list(Token) ->
   #apns_msg{
     device_token = Token,
-    alert = Text,
-    badge = Badge,
-    sound = Sound,
-    extra = Extra
+    alert = case Text of undefined -> default(text); _ -> Text end,
+    badge = case Badge of undefined -> default(badge); _ -> Badge end,
+    sound = case Sound of undefined -> default(sound); _ -> Sound end,
+    extra = case Extra of undefined -> default(extra); _ -> Extra end
   }.
+
+default(extra) -> [];
+default(_) -> none.
 
 push_host(true) -> "gateway.sandbox.push.apple.com";
 push_host(false) -> "gateway.push.apple.com".

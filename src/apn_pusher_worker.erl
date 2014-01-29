@@ -99,7 +99,7 @@ get_message(
   },
   Token) when is_list(Token) ->
   #apns_msg{
-    device_token = Token,
+    device_token = [Char || Char <- Token, Char =/= $  ],
     alert = case Text of undefined -> default(text); _ -> Text end,
     badge = case Badge of undefined -> default(badge); _ -> Badge end,
     sound = case Sound of undefined -> default(sound); _ -> Sound end,

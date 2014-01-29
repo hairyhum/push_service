@@ -66,7 +66,7 @@ pool_name(OsName, AppId, Debug) ->
 
 -spec make_pool(atom(), os_name(), app_id(), boolean()) -> {ok, pid()}.
 make_pool(PoolName, OsName, AppId, Debug) ->
-  {ok, PoolArgs} = application:get_env(push_service, pool_args, [{size, 2},{max_overflow, 3}]),
+  PoolArgs = application:get_env(push_service, pool_args, [{size, 2},{max_overflow, 3}]),
   PoolArgs =  [
     {name, {local, PoolName}},
     {worker_module, worker_module(OsName)}

@@ -47,8 +47,8 @@ init({AppId, Debug}) ->
     true -> undefined;
     false ->
       KeyName = case Debug of
-        true -> "apn_development_key.pem";
-        false -> "apn_production_key.pem"
+        true -> "apn_development.pem";
+        false -> "apn_production.pem"
       end,
       CertDir ++ "/" ++ binary_to_list(AppId) ++ "/" ++ KeyName
   end,

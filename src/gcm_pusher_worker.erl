@@ -14,7 +14,9 @@
 start_link(Args) ->
     gen_server:start_link(?MODULE, Args, []).
 
-init({AppId, Debug}) ->
+init({AppId, Debug}) when is_binary(AppId) ->
+  init({binary_to_list(AppId), Debug});
+init({AppId, Debug}) when is_list(AppId) ->
   Config = application:get_env(push_service, gcm, []),
   ApiKeys = proplists:get_value(api_keys, Config, []),
   ErrorFun = case proplists:get_value(error_fun, Config) of

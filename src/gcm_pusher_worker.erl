@@ -47,7 +47,11 @@ get_tokens(Tokens) -> Tokens.
 error_fun(X, Y) ->
   erlang:display({X,Y}).
 
-handle_call({send, Tokens, Message}, _From, #state{conn = C} = State)
+handle_call({send, Token, Message}, _From, #state{conn = C} = State)
+    when is_record(Message, message) ->
+  ok = gcm:sync_push(C, get_tokens([Token]), get_message(Message)),
+  {reply, ok, State};
+handle_call({send_many, Tokens, Message}, _From, #state{conn = C} = State)
     when is_record(Message, message) ->
   ok = gcm:sync_push(C, get_tokens(Tokens), get_message(Message)),
   {reply, ok, State}.

@@ -35,10 +35,30 @@ send_to_group(
   } = Group,
   Message) ->
   Pool = get_pool(Group),
+  case should_send_to_all(Group) of
+    true -> send_to_all(Pool, Tokens, Message);
+    false -> send_by_one(Pool, Tokens, Message)
+  end.
+
+-spec should_send_to_all(#device_group{}) -> boolean().
+should_send_to_all(#device_group{ os_name = ios }) -> false;
+should_send_to_all(#device_group{ os_name = android }) -> true;
+should_send_to_all(_) -> false.
+
+-spec send_to_all(atom(), [binary()], #message{}) -> ok.
+send_to_all(Pool, Tokens, Message) ->
   poolboy:transaction(Pool,
-    fun(Pusher) ->
-      send(Pusher, Tokens, Message)
+    fun(Worker) ->
+      gen_server:call(Worker, {send_many, Tokens, Message})
     end).
+
+-spec send_by_one(atom(), [binary()], #message{}) -> ok.
+send_by_one(Pool, Tokens, Message) ->
+  [ poolboy:transaction(Pool,
+      fun(Worker) ->
+        gen_server:call(Worker, {send, Token, Message})
+      end)
+    || Token <- Tokens ].
 
 -spec get_pool(#device_group{}) -> atom().
 get_pool(
@@ -50,7 +70,7 @@ get_pool(
   PoolName = pool_name(OsName, AppId, Debug),
   case whereis(PoolName) of
     undefined ->
-      {ok, _} = make_pool(PoolName, OsName, AppId, Debug),
+      make_pool(PoolName, OsName, AppId, Debug),
       PoolName;
     Pid when is_pid(Pid) ->
       PoolName
@@ -74,11 +94,6 @@ make_pool(PoolName, OsName, AppId, Debug) ->
   WorkerArgs = {AppId, Debug},
   Child = poolboy:child_spec(PoolName, PoolArgs, WorkerArgs),
   supervisor:start_child(?MODULE, Child).
-
--spec send(pid(), [token()], message()) -> ok.
-send(Pusher, Tokens, Message) ->
-  FormattedTokens = [ binary:replace(Token, <<" ">>, <<>>) || Token <- Tokens ],
-  gen_server:call(Pusher, {send, FormattedTokens, Message}).
 
 worker_module(ios) -> apn_pusher_worker;
 worker_module(android) -> gcm_pusher_worker;

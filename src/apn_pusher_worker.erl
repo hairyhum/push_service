@@ -31,14 +31,13 @@ init({AppId, Debug}) ->
   FeedbackFun = fun FeedbackFunMod:FeedbackFunFun/1,
 
   Self = self(),
-  ConnectionErrorFun = fun(Conn) -> 
+  ConnectionErrorFun = fun(Conn) ->
     error_logger:info_msg("APNS disconnected. Connection: ~p~n", [Conn]),
-    exit(Self, connection_close),
     stop
   end,
 
   Timeout = proplists:get_value(timeout, Config, 30000),
-  FeedbackTimeout = proplists:get_value(feedback_timeout, Config, 30*60*1000),
+  FeedbackTimeout = proplists:get_value(feedback_timeout, Config, 600000),
 
   CertDir = proplists:get_value(cert_dir, Config, "etc/apn"),
 
@@ -75,17 +74,22 @@ init({AppId, Debug}) ->
         timeout = Timeout,
         feedback_timeout = FeedbackTimeout
       },
-      {ok, Pid} = apns:connect(Connection),
+      {ok, Pid} = apns_connection:start_link(Connection),
       {ok, #state{ conn = Pid }};
     {error, Reason} ->
       {stop, {cert_file, Reason}}
   end.
 
-handle_call({send, Tokens, Message}, _From, #state{conn = C} = State)
+
+handle_call({send, Token, Message}, _From, #state{conn = C} = State)
     when is_record(Message, message) ->
-  [ {ok, _} = apns:send_sync_message(C, get_message(Message, Token))
-    || Token <- Tokens ],
+  apns:send_sync_message(C, get_message(Message, Token)),
+  {reply, ok, State};
+handle_call({send_many, Tokens, Message}, _From, #state{conn = C} = State)
+    when is_record(Message, message) ->
+  [ apns:send_sync_message(C, get_message(Message, Token)) || Token <- Tokens ],
   {reply, ok, State}.
+
 
 handle_cast(_,State) -> {noreply, State}.
 

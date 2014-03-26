@@ -27,7 +27,7 @@ init({AppId, Debug}) when is_list(AppId) ->
     undefined ->
       {stop, no_config_for_app_id};
     ApiKey ->
-      Name = list_to_atom("gcm_conn_" ++ AppId ++ if Debug -> "debug"; true -> "" end),
+      Name = list_to_atom(gen_name("gcm_conn_" ++ AppId ++ if Debug -> "debug"; true -> "" end)),
       {ok, Conn} = case ErrorFun of
         undefined -> gcm:start_link(Name, ApiKey);
         F when is_function(F, 2)  -> gcm:start_link(Name, ApiKey, F)
@@ -35,6 +35,17 @@ init({AppId, Debug}) when is_list(AppId) ->
       {ok, #state{ conn = Conn }}
   end.
 
+gen_name(Name) ->
+  gen_name(Name, 0).
+gen_name(Name, Num) ->
+   NewName = Name ++ integer_to_list(Num),
+   case whereis(list_to_atom(NewName)) of
+     undefined -> NewName;
+     _ -> gen_name(Name, Num + 1)
+   end.
+
+get_message(#message{text = Text, extra = undefined}) ->
+  get_message(#message{text = Text, extra = []});
 get_message(#message{
   text = Text,
   extra = Extra

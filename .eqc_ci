@@ -1,2 +1,2 @@
-{build, "make rebuild"}.
+{build, "make dep rebuild"}.
 {test_path, "ebin"}.

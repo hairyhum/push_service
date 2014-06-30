@@ -97,5 +97,5 @@ make_pool(PoolName, OsName, AppId, Debug) ->
 
 worker_module(ios) -> apn_pusher_worker;
 worker_module(android) -> gcm_pusher_worker;
-worker_module(nokia) -> nns_pusher_worker;
+worker_module('android-nokia') -> nns_pusher_worker;
 worker_module(Name) -> error({os_name_not_supported, Name}).

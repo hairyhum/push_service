@@ -9,7 +9,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
          code_change/3]).
 
--export([error_fun/2, feedback_fun/1]).
+-export([error_fun/2, feedback_fun/2]).
 
 -record(state, {conn}).
 
@@ -19,8 +19,8 @@ start_link(Args) ->
 error_fun(X, Y) ->
   erlang:display({X,Y}).
 
-feedback_fun({Date, Token}) ->
-  erlang:display({Date, Token}).
+feedback_fun(AppId, {Date, Token}) ->
+  erlang:display({AppId, Date, Token}).
 
 init({AppId, Debug}) ->
   Config = application:get_env(push_service, apn, []),
@@ -28,7 +28,13 @@ init({AppId, Debug}) ->
   {ErrorFunMod, ErrorFunFun} = proplists:get_value(error_fun, Config, {apn_pusher_worker, error_fun}),
   ErrorFun = fun ErrorFunMod:ErrorFunFun/2,
   {FeedbackFunMod, FeedbackFunFun} = proplists:get_value(feedback_fun, Config, {apn_pusher_worker, feedback_fun}),
-  FeedbackFun = fun FeedbackFunMod:FeedbackFunFun/1,
+  FeedbackFun = fun(FeedbackData) ->
+    case {erlang:function_exported(FeedbackFunMod, FeedbackFunFun, 2), erlang:function_exported(FeedbackFunMod, FeedbackFunFun, 1)} of
+      {true, _} -> FeedbackFunMod:FeedbackFunFun(AppId, FeedbackData);
+      {_, true} -> FeedbackFunMod:FeedbackFunFun(FeedbackData);
+      _ -> feedback_fun(AppId, FeedbackData)
+    end
+  end,
 
   Self = self(),
   ConnectionErrorFun = fun(Conn) ->

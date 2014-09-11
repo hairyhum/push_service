@@ -80,8 +80,12 @@ init({AppId, Debug}) ->
         timeout = Timeout,
         feedback_timeout = FeedbackTimeout
       },
-      {ok, Pid} = apns_connection:start_link(Connection),
-      {ok, #state{ conn = Pid }};
+      case apns_connection:start_link(Connection) of
+        {ok, Pid} -> {ok, #state{ conn = Pid }};
+        Err ->
+          lager:error("Unable to start APN worker ~p Error ~p", [{AppId, Debug}, Err]),
+          {stop, {apns_connection, Err}}
+      end;
     {error, Reason} ->
       {stop, {cert_file, Reason}}
   end.

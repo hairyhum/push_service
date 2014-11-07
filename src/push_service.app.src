@@ -6,7 +6,8 @@
   {applications, [
                   kernel,
                   stdlib,
-                  apns
+                  apns,
+                  gcm
                  ]},
   {mod, { push_service_app, []}},
   {env, [

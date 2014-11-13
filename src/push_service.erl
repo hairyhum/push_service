@@ -40,10 +40,11 @@ send_to_group(
     false -> send_by_one(Pool, Tokens, Message)
   end.
 
+
 -spec should_send_to_all(#device_group{}) -> boolean().
-should_send_to_all(#device_group{ os_name = ios }) -> false;
-should_send_to_all(#device_group{ os_name = android }) -> true;
-should_send_to_all(_) -> false.
+should_send_to_all(#device_group{ os_name = OsName }) -> 
+  Worker = worker_module(OsName),
+  Worker:should_send_to_all().
 
 -spec send_to_all(atom(), [binary()], #message{}) -> ok.
 send_to_all(Pool, Tokens, Message) ->
@@ -95,7 +96,11 @@ make_pool(PoolName, OsName, AppId, Debug) ->
   Child = poolboy:child_spec(PoolName, PoolArgs, WorkerArgs),
   supervisor:start_child(?MODULE, Child).
 
-worker_module(ios) -> apn_pusher_worker;
-worker_module(android) -> gcm_pusher_worker;
-worker_module('android-nokia') -> nns_pusher_worker;
-worker_module(Name) -> error({os_name_not_supported, Name}).
+
+worker_module(OsName) ->
+  Config = application:get_env(push_service, apn, []),
+  Workers = proplists:get_value(worker_modules, Config, []),
+  case proplists:get_value(OsName, Workers) of
+    undefined -> error({os_name_not_supported, Name});
+    Val -> Val
+  end.

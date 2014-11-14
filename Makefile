@@ -2,8 +2,7 @@
 APP_NAME=push_service
 WD=`pwd | sed 's/\//\\\\\//g'`
 
-ulimit:
-	sh -c 'ulimit -Sd 200000'
+all: reset
 
 redep:
 	rm -rf deps
@@ -29,4 +28,3 @@ build_plt:
 analyze: compile
 	ERL_LIBS=$(PWD)/deps dialyzer --plt $(APP_NAME).plt -r src --src -I deps -I include
 
-all: reset

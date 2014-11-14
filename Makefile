@@ -2,7 +2,7 @@
 APP_NAME=push_service
 WD=`pwd | sed 's/\//\\\\\//g'`
 
-all: reset
+all: dep reset
 
 redep:
 	rm -rf deps

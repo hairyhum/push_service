@@ -120,15 +120,19 @@ get_message(
     extra = Extra
   },
   Token) when is_list(Token) ->
-  #apns_msg{
+  ContentAvailable = proplists:get_value(content_available, Extra),
+  Msg = #apns_msg{
     device_token = [Char || Char <- Token, Char =/= $  ],
     alert = case Text of undefined -> default(text); _ -> Text end,
     badge = case Badge of undefined -> default(badge); _ -> Badge end,
     sound = case Sound of undefined -> default(sound); _ -> Sound end,
-    extra = case Extra of undefined -> default(extra); _ -> Extra end
-  }.
+    content_available = case ContentAvailable of undefined -> default(content_available); _ -> ContentAvailable end,
+    extra = case Extra of undefined -> default(extra); _ -> proplists:delete(content_available, Extra) end
+  },
+  Msg.
 
 default(extra) -> [];
+default(content_available) -> false;
 default(_) -> none.
 
 push_host(true) -> "gateway.sandbox.push.apple.com";

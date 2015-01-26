@@ -7,7 +7,11 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
          code_change/3]).
 
--export([error_fun/2]).
+-export([
+  error_fun/2,
+  update_token_fun/3,
+  clear_token_fun/2
+]).
 
 -record(state, {conn}).
 
@@ -19,10 +23,17 @@ init({AppId, Debug}) when is_binary(AppId) ->
 init({AppId, Debug}) when is_list(AppId) ->
   Config = application:get_env(push_service, gcm, []),
   ApiKeys = proplists:get_value(api_keys, Config, []),
-  ErrorFun = case proplists:get_value(error_fun, Config) of
-    {ErrorFunMod, ErrorFunFun} -> fun ErrorFunMod:ErrorFunFun/2;
-    undefined -> undefined
-  end,
+  {UpdateTokenMod, UpdateTokenFun} = proplists:get_value(update_token_fun, Config, {gcm_pusher_worker, update_token_fun}),
+  {ClearTokenMod, ClearTokenFun} = proplists:get_value(clear_token_fun, Config, {gcm_pusher_worker, clear_token_fun}),
+  ErrorFun = 
+    fun(<<"NewRegistrationId">>, {RegId, NewRegId}) ->
+        UpdateTokenMod:UpdateTokenFun(AppId, RegId, NewRegId);
+       (<<"InvalidRegistration">>, RegId) ->
+        ClearTokenMod:ClearTokenFun(AppId, RegId);
+       (Message, RegId) ->
+        lager:error("Error sending gcm message ~p Reg Id ~p", [Message, RegId]),
+        ok
+    end,
   case proplists:get_value(AppId, ApiKeys) of
     undefined ->
       {stop, no_config_for_app_id};
@@ -34,6 +45,15 @@ init({AppId, Debug}) when is_list(AppId) ->
       end,
       {ok, #state{ conn = Conn }}
   end.
+
+update_token_fun(AppId, Old, New) ->
+  lager:info("Update token in gcm. AppId ~p Old ~p New ~p", [AppId, Old, New]),
+  ok.
+
+clear_token_fun(AppId, Token) ->
+  lager:info("Clear token in gcm. AppId ~p Token ~p", [AppId, Token]),
+  ok.
+
 
 gen_name(Name) ->
   gen_name(Name, 0).

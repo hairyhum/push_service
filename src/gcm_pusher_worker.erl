@@ -28,7 +28,7 @@ init({AppId, Debug}) when is_list(AppId) ->
   ErrorFun = 
     fun(<<"NewRegistrationId">>, {RegId, NewRegId}) ->
         UpdateTokenMod:UpdateTokenFun(AppId, RegId, NewRegId);
-       (<<"InvalidRegistration">>, RegId) ->
+       (<<"NotRegistered">>, RegId) ->
         ClearTokenMod:ClearTokenFun(AppId, RegId);
        (Message, RegId) ->
         lager:error("Error sending gcm message ~p Reg Id ~p", [Message, RegId]),

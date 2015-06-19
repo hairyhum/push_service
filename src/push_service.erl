@@ -98,8 +98,7 @@ make_pool(PoolName, OsName, AppId, Debug) ->
 
 
 worker_module(OsName) ->
-  Config = application:get_env(push_service, apn, []),
-  Workers = proplists:get_value(worker_modules, Config, []),
+  Workers = application:get_env(push_service, workers, []),
   case proplists:get_value(OsName, Workers) of
     undefined -> error({os_name_not_supported, OsName});
     Val -> Val

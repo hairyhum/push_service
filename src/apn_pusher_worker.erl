@@ -122,7 +122,9 @@ get_message(
     extra = Extra
   },
   Token) when is_list(Token) ->
-  ContentAvailable = proplists:get_value(content_available, Extra),
+  ContentAvailable = if is_list(Extra) -> proplists:get_value(content_available, Extra);
+    true -> undefined
+  end,
   Msg = #apns_msg{
     device_token = [Char || Char <- Token, Char =/= $  ],
     alert = case Text of undefined -> default(text); _ -> Text end,
